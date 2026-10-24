@@ -11,6 +11,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.text.InputType;
 import android.util.SparseBooleanArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,6 +62,14 @@ public class MainActivity extends Activity {
         return b;
     }
 
+    private int parse(EditText e, int fallback) {
+        try {
+            return Integer.parseInt(e.getText().toString().trim());
+        } catch (Exception ex) {
+            return fallback;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,7 +81,7 @@ public class MainActivity extends Activity {
         TextView info = new TextView(this);
         info.setTextSize(14);
         info.setText("Moves .jpg images from the folder below into "
-                + "NumberedImages and names them 1.jpg, 2.jpg ... 300.jpg.");
+                + "NumberedImages and numbers them 1.jpg, 2.jpg ...");
         box.addView(info);
 
         final EditText folder = new EditText(this);
@@ -90,18 +99,56 @@ public class MainActivity extends Activity {
             }
         }));
 
+        // start number and last number
+        LinearLayout nums = new LinearLayout(this);
+        nums.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+
+        final EditText startBox = new EditText(this);
+        startBox.setInputType(InputType.TYPE_CLASS_NUMBER);
+        startBox.setHint("Start number");
+        startBox.setText(String.valueOf(Renamer.getStart(this)));
+        nums.addView(startBox, half);
+
+        final EditText limitBox = new EditText(this);
+        limitBox.setInputType(InputType.TYPE_CLASS_NUMBER);
+        limitBox.setHint("Last number (0 = unlimited)");
+        limitBox.setText(String.valueOf(Renamer.getLimit(this)));
+        nums.addView(limitBox, half);
+        box.addView(nums);
+
+        box.addView(btn("Save numbers", v -> {
+            int s = parse(startBox, 1);
+            int l = parse(limitBox, 0);
+            if (s < 1) {
+                Toast.makeText(this, "Start must be 1 or more", Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (l != 0 && l < s) {
+                Toast.makeText(this, "Last number must be 0 or at least the start",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            Renamer.setStart(this, s);
+            Renamer.setLimit(this, l);
+            Renamer.setNext(this, s);
+            refreshStatus();
+            Toast.makeText(this, "Saved. Next number: " + s, Toast.LENGTH_SHORT).show();
+        }));
+
         box.addView(btn("Grant file access", v -> askPermission()));
 
         status = new TextView(this);
-        status.setTextSize(16);
+        status.setTextSize(15);
         status.setPadding(0, dp(8), 0, dp(8));
         box.addView(status);
 
         startStop = btn("Start", v -> toggle());
         box.addView(startStop);
 
-        box.addView(btn("Reset counter to 1", v -> {
-            Renamer.setNext(this, 1);
+        box.addView(btn("Reset counter to start number", v -> {
+            Renamer.setNext(this, Renamer.getStart(this));
             refreshStatus();
         }));
 
@@ -139,7 +186,10 @@ public class MainActivity extends Activity {
 
         box.addView(btn("Rename selected", v -> renameSelected()));
 
-        setContentView(box);
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        sv.setFillViewport(true);
+        sv.addView(box);
+        setContentView(sv);
 
         if (Build.VERSION.SDK_INT >= 33
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
@@ -210,10 +260,12 @@ public class MainActivity extends Activity {
 
     private void refreshStatus() {
         boolean on = RenameService.running;
+        int limit = Renamer.getLimit(this);
         startStop.setText(on ? "Stop" : "Start");
         status.setText((on ? "Running" : "Stopped")
-                + "   |   Next number: " + Renamer.getNext(this)
-                + "   |   Access: " + (hasAccess() ? "OK" : "NOT GRANTED"));
+                + "  |  Next: " + Renamer.getNext(this)
+                + "  |  Last: " + (limit == 0 ? "unlimited" : String.valueOf(limit))
+                + "  |  Access: " + (hasAccess() ? "OK" : "NOT GRANTED"));
     }
 
     private void loadImages() {
@@ -256,8 +308,8 @@ public class MainActivity extends Activity {
                 break;
             }
         }
-        Toast.makeText(this, "Renamed " + done + " files" + (limit ? " (limit 300 reached)" : ""),
-                Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Renamed " + done + " files"
+                + (limit ? " (last number reached)" : ""), Toast.LENGTH_LONG).show();
         loadImages();
         refreshStatus();
     }
