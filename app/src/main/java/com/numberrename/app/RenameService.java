@@ -107,7 +107,7 @@ public class RenameService extends Service {
                             buildNotification("Renamed " + count + " files. Next number: "
                                     + Renamer.getNext(this)));
                 } else if (r == -1) {
-                    Toast.makeText(this, "Limit of 300 reached. Auto mode stopped.",
+                    Toast.makeText(this, "Last number reached. Auto mode stopped.",
                             Toast.LENGTH_LONG).show();
                     stopSelf();
                     return;
