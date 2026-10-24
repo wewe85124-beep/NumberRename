@@ -90,7 +90,7 @@ public class RenameService extends Service {
     }
 
     private void check() {
-        File[] all = Renamer.SRC.listFiles();
+        File[] all = Renamer.getSrc(this).listFiles();
         if (all == null) return;
         for (File f : all) {
             if (!Renamer.isImage(f)) continue;
@@ -98,7 +98,6 @@ public class RenameService extends Service {
             String key = f.getAbsolutePath();
             long size = f.length();
             Long prev = sizes.get(key);
-            // rename only when the size stopped changing (download finished)
             if (prev != null && prev == size && size > 0) {
                 sizes.remove(key);
                 int r = Renamer.renameOne(this, f);
