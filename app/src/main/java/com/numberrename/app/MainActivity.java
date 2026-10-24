@@ -16,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -70,9 +71,24 @@ public class MainActivity extends Activity {
 
         TextView info = new TextView(this);
         info.setTextSize(14);
-        info.setText("Moves .jpg images from the main storage folder into "
+        info.setText("Moves .jpg images from the folder below into "
                 + "NumberedImages and names them 1.jpg, 2.jpg ... 300.jpg.");
         box.addView(info);
+
+        final EditText folder = new EditText(this);
+        folder.setSingleLine(true);
+        folder.setText(Renamer.getSrc(this).getAbsolutePath());
+        box.addView(folder);
+        box.addView(btn("Save folder", v -> {
+            File d = new File(folder.getText().toString().trim());
+            if (d.isDirectory()) {
+                Renamer.setSrc(this, d.getAbsolutePath());
+                loadImages();
+                Toast.makeText(this, "Folder saved", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Folder not found", Toast.LENGTH_LONG).show();
+            }
+        }));
 
         box.addView(btn("Grant file access", v -> askPermission()));
 
@@ -203,7 +219,7 @@ public class MainActivity extends Activity {
     private void loadImages() {
         files.clear();
         labels.clear();
-        File[] all = Renamer.SRC.listFiles();
+        File[] all = Renamer.getSrc(this).listFiles();
         if (all != null) {
             for (File f : all) if (Renamer.isImage(f)) files.add(f);
         }
