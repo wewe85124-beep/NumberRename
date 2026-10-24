@@ -11,7 +11,7 @@ public class Renamer {
 
     public static final int MAX = 300;
     public static final String DEST_NAME = "NumberedImages";
-    public static final File SRC = Environment.getExternalStorageDirectory();
+    public static final File ROOT = Environment.getExternalStorageDirectory();
 
     public static boolean isImage(File f) {
         if (!f.isFile()) return false;
@@ -24,6 +24,15 @@ public class Renamer {
         return c.getSharedPreferences("numberrename", Context.MODE_PRIVATE);
     }
 
+    public static File getSrc(Context c) {
+        String def = new File(ROOT, "Download").getAbsolutePath();
+        return new File(prefs(c).getString("src", def));
+    }
+
+    public static void setSrc(Context c, String path) {
+        prefs(c).edit().putString("src", path).apply();
+    }
+
     public static int getNext(Context c) {
         return prefs(c).getInt("next", 1);
     }
@@ -33,15 +42,11 @@ public class Renamer {
     }
 
     public static File destDir() {
-        File d = new File(SRC, DEST_NAME);
+        File d = new File(ROOT, DEST_NAME);
         if (!d.exists()) d.mkdirs();
         return d;
     }
 
-    /**
-     * Moves one file into NumberedImages with the next free number.
-     * Returns the number used, 0 if it failed, or -1 if the limit (300) is reached.
-     */
     public static int renameOne(Context c, File f) {
         int n = getNext(c);
         File dir = destDir();
